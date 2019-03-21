@@ -41,6 +41,11 @@
         'Allow': 'from all',
         'Require': 'all granted',
     },
+    'LocationMatch': {
+        'Order': 'allow,deny',
+        'Allow': 'from all',
+        'Require': 'all granted',
+    },
 } -%}
 
 <VirtualHost {% for intf in vals.interfaces %} {{intf}}:{{ vals.port }}{% endfor -%}>
@@ -129,6 +134,25 @@
         {% endif %}
     </Location>
     {% endfor %}
+
+    {%- for regpath, locmat in site.get('LocationMatch', {}).items() %}
+    {%- set lmvals = {
+        'Order': locmat.get('Order', vals.LocationMatch.Order),
+        'Allow': locmat.get('Allow', vals.LocationMatch.Allow),
+        'Require': locmat.get('Require', vals.LocationMatch.Require),
+        'Dav': locmat.get('Dav', False),
+    } %}
+    <LocationMatch "{{ regpath }}">
+      {% if map.version == '2.4' %}
+      {%- if lmvals.get('Require') != False %}Require {{lmvals.Require}}{% endif %}
+      {% else %}
+      {%- if lmvals.get('Order') != False %}Order {{ lmvals.Order }}{% endif %}
+      {%- if lmvals.get('Allow') != False %}Allow {{ lmvals.Allow }}{% endif %}
+      {% endif %}
+      {%- if locmat.get('Formula_Append') %} {{ locmat.Formula_Append|indent(8) }} {% endif %}
+    </LocationMatch>
+    {% endfor %}
+
 
     {%- if site.get('Formula_Append') %}
     {{ site.Formula_Append|indent(4) }}
